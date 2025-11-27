@@ -14,12 +14,10 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.example.mp_lab_9.activity.AuthActivity;
-import com.example.mp_lab_9.network.PutData;
+import com.example.mp_lab_9.network.ApiClient;
 import com.example.mp_lab_9.R;
 import org.json.JSONException;
 import org.json.JSONObject;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 public class RegisterFragment extends Fragment {
 
@@ -27,6 +25,7 @@ public class RegisterFragment extends Fragment {
     private Button buttonRegister;
     private ProgressBar progressBar;
     private TextView textViewLogin;
+    private ApiClient apiClient;
 
     public RegisterFragment() {
         // Required empty public constructor
@@ -41,6 +40,7 @@ public class RegisterFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        apiClient = new ApiClient(requireContext());
         initViews(view);
         setupListeners();
     }
@@ -108,50 +108,37 @@ public class RegisterFragment extends Fragment {
     private void performRegistration(String name, String email, String password) {
         showLoading(true);
 
-        Executor executor = Executors.newSingleThreadExecutor();
-        executor.execute(() -> {
-            try {
-                String[] field = {"name", "email", "password"};
-                String[] data = {name, email, password};
-                String url = "http://your-server.com/api/register"; // Замените на ваш URL
-
-                PutData putData = new PutData(url, "POST", field, data);
-                if (putData.startPut()) {
-                    if (putData.onComplete()) {
-                        String result = putData.getResult();
-                        requireActivity().runOnUiThread(() -> handleRegistrationResponse(result));
-                    }
-                }
-            } catch (Exception e) {
+        apiClient.register(name, email, password, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(JSONObject response) {
                 requireActivity().runOnUiThread(() -> {
                     showLoading(false);
-                    Toast.makeText(requireContext(), "Ошибка сети: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    try {
+                        if (response.getBoolean("success")) {
+                            String message = response.getString("message");
+                            Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
+
+                            if (getActivity() != null) {
+                                getActivity().onBackPressed();
+                            }
+                        } else {
+                            String error = response.optString("message", "Registration failed");
+                            Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (JSONException e) {
+                        Toast.makeText(requireContext(), "Ошибка parsing JSON: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                requireActivity().runOnUiThread(() -> {
+                    showLoading(false);
+                    Toast.makeText(requireContext(), "Ошибка сети: " + error, Toast.LENGTH_SHORT).show();
                 });
             }
         });
-    }
-
-    private void handleRegistrationResponse(String response) {
-        showLoading(false);
-
-        try {
-            JSONObject jsonObject = new JSONObject(response);
-
-            if (jsonObject.has("error")) {
-                String error = jsonObject.getString("error");
-                Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
-            } else if (jsonObject.has("message")) {
-                String message = jsonObject.getString("message");
-                Toast.makeText(requireContext(), message, Toast.LENGTH_SHORT).show();
-
-                // Возвращаемся к экрану логина после успешной регистрации
-                if (getActivity() != null) {
-                    getActivity().onBackPressed();
-                }
-            }
-        } catch (JSONException e) {
-            Toast.makeText(requireContext(), "Ошибка parsing JSON: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
     }
 
     private void showLoginFragment() {

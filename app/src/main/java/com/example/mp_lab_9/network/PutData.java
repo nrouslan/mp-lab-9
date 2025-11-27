@@ -16,7 +16,7 @@ import java.util.Map;
 public class PutData extends Thread {
     private String url;
     private String method;
-    private String resultData = "Empty";
+    private String resultData = "{}";
     private String[] field;
     private String[] data;
     private HashMap<String, String> headers;
@@ -25,7 +25,6 @@ public class PutData extends Thread {
     private boolean isJson = false;
     private String jsonBody = "";
 
-    // Конструктор для формы данных
     public PutData(String url, String method, String[] field, String[] data) {
         this.url = url;
         this.method = method;
@@ -36,25 +35,20 @@ public class PutData extends Thread {
         this.headers = new HashMap<>();
     }
 
-    // Конструктор для JSON данных
     public PutData(String url, String method, String jsonBody) {
         this.url = url;
         this.method = method;
         this.jsonBody = jsonBody;
         this.isJson = true;
         this.headers = new HashMap<>();
-        // Устанавливаем заголовок для JSON по умолчанию
-        addHeader("Content-Type", "application/json");
     }
 
-    // Конструктор для простых запросов (GET, DELETE)
     public PutData(String url, String method) {
         this.url = url;
         this.method = method;
         this.headers = new HashMap<>();
     }
 
-    // Метод для добавления заголовков
     public void addHeader(String key, String value) {
         if (headers == null) {
             headers = new HashMap<>();
@@ -62,23 +56,20 @@ public class PutData extends Thread {
         headers.put(key, value);
     }
 
-    // Метод для установки JWT токена
     public void setAuthToken(String token) {
         addHeader("Authorization", "Bearer " + token);
     }
 
     @Override
     public void run() {
+        HttpURLConnection httpURLConnection = null;
         try {
-            String UTF8 = "UTF-8";
-            String iso = "iso-8859-1";
-
             URL url = new URL(this.url);
-            HttpURLConnection httpURLConnection = (HttpURLConnection) url.openConnection();
+            httpURLConnection = (HttpURLConnection) url.openConnection();
 
             // Настройка соединения
             httpURLConnection.setRequestMethod(this.method);
-            httpURLConnection.setConnectTimeout(15000); // 15 секунд таймаут
+            httpURLConnection.setConnectTimeout(15000);
             httpURLConnection.setReadTimeout(15000);
             httpURLConnection.setDoInput(true);
 
@@ -89,12 +80,12 @@ public class PutData extends Thread {
                 }
             }
 
-            // Для запросов с телом (POST, PUT) настраиваем вывод
+            // Для запросов с телом (POST, PUT)
             if (method.equals("POST") || method.equals("PUT")) {
                 httpURLConnection.setDoOutput(true);
 
                 OutputStream outputStream = httpURLConnection.getOutputStream();
-                BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(outputStream, UTF8));
+                BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(outputStream, "UTF-8"));
 
                 if (isJson && jsonBody != null) {
                     // Отправка JSON данных
@@ -104,9 +95,9 @@ public class PutData extends Thread {
                     StringBuilder postData = new StringBuilder();
                     for (int i = 0; i < this.field.length; i++) {
                         if (i > 0) postData.append("&");
-                        postData.append(URLEncoder.encode(this.field[i], UTF8))
+                        postData.append(URLEncoder.encode(this.field[i], "UTF-8"))
                                 .append("=")
-                                .append(URLEncoder.encode(this.data[i], UTF8));
+                                .append(URLEncoder.encode(this.data[i], "UTF-8"));
                     }
                     bufferedWriter.write(postData.toString());
                 }
@@ -130,7 +121,7 @@ public class PutData extends Thread {
                 }
             }
 
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream, iso));
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
             StringBuilder result = new StringBuilder();
             String resultLine;
 
@@ -140,13 +131,16 @@ public class PutData extends Thread {
 
             bufferedReader.close();
             inputStream.close();
-            httpURLConnection.disconnect();
 
             setData(result.toString());
 
         } catch (IOException e) {
             setData("{\"error\":\"Network error: " + e.getMessage() + "\"}");
             errorMessage = e.getMessage();
+        } finally {
+            if (httpURLConnection != null) {
+                httpURLConnection.disconnect();
+            }
         }
     }
 
@@ -171,16 +165,12 @@ public class PutData extends Thread {
     }
 
     public boolean onComplete() {
-        while (true) {
-            if (!this.isAlive()) {
-                return true;
-            }
-            try {
-                Thread.sleep(100); // Небольшая задержка чтобы не нагружать CPU
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return false;
-            }
+        try {
+            this.join(20000); // 20 секунд timeout
+            return !this.isAlive();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
         }
     }
 

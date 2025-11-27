@@ -2,17 +2,8 @@ package com.example.mp_lab_9.network;
 
 public class ApiConfig {
 
-    // ВЫБЕРИТЕ НУЖНЫЙ ВАРИАНТ:
-
-    // 1. Для эмулятора Android (стандартный)
+    // Для эмулятора Android
     public static final String BASE_URL = "http://10.0.2.2/smart-shopping-api/";
-
-    // 2. Для реального устройства в той же Wi-Fi сети
-    // public static final String BASE_URL = "http://192.168.1.100/smart-shopping-api/";
-    // Замените 192.168.1.100 на IP вашего компьютера
-
-    // 3. Для продакшена
-    // public static final String BASE_URL = "https://yourdomain.com/smart-shopping-api/";
 
     // Endpoints
     public static final String REGISTER = BASE_URL + "register.php";
@@ -30,5 +21,6 @@ public class ApiConfig {
     public static final String HEADER_CONTENT_TYPE = "Content-Type";
     public static final String HEADER_AUTHORIZATION = "Authorization";
     public static final String CONTENT_TYPE_JSON = "application/json";
+    public static final String CONTENT_TYPE_FORM = "application/x-www-form-urlencoded";
     public static final String BEARER_PREFIX = "Bearer ";
 }

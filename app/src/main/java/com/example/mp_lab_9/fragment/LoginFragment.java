@@ -15,13 +15,11 @@ import androidx.fragment.app.Fragment;
 
 import com.example.mp_lab_9.activity.AuthActivity;
 import com.example.mp_lab_9.data.model.User;
-import com.example.mp_lab_9.network.PutData;
+import com.example.mp_lab_9.network.ApiClient;
 import com.example.mp_lab_9.util.SharedPrefManager;
 import com.example.mp_lab_9.R;
 import org.json.JSONException;
 import org.json.JSONObject;
-import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 
 public class LoginFragment extends Fragment {
 
@@ -30,6 +28,7 @@ public class LoginFragment extends Fragment {
     private ProgressBar progressBar;
     private TextView textViewRegister;
     private SharedPrefManager sharedPrefManager;
+    private ApiClient apiClient;
 
     public LoginFragment() {
         // Required empty public constructor
@@ -46,6 +45,7 @@ public class LoginFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         sharedPrefManager = SharedPrefManager.getInstance(requireContext());
+        apiClient = new ApiClient(requireContext());
         initViews(view);
         setupListeners();
     }
@@ -97,58 +97,43 @@ public class LoginFragment extends Fragment {
     private void performLogin(String email, String password) {
         showLoading(true);
 
-        Executor executor = Executors.newSingleThreadExecutor();
-        executor.execute(() -> {
-            try {
-                // Подготовка данных для запроса
-                String[] field = {"email", "password"};
-                String[] data = {email, password};
-                String url = "http://your-server.com/api/login"; // Замените на ваш URL
-
-                PutData putData = new PutData(url, "POST", field, data);
-                if (putData.startPut()) {
-                    if (putData.onComplete()) {
-                        String result = putData.getResult();
-                        requireActivity().runOnUiThread(() -> handleLoginResponse(result));
-                    }
-                }
-            } catch (Exception e) {
+        apiClient.login(email, password, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(JSONObject response) {
                 requireActivity().runOnUiThread(() -> {
                     showLoading(false);
-                    Toast.makeText(requireContext(), "Ошибка сети: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    try {
+                        if (response.getBoolean("success")) {
+                            String token = response.getString("token");
+                            JSONObject userObject = response.getJSONObject("user");
+
+                            User user = new User(
+                                    userObject.getInt("id"),
+                                    userObject.getString("email"),
+                                    userObject.getString("name")
+                            );
+
+                            sharedPrefManager.userLogin(user, token);
+                            Toast.makeText(requireContext(), "Добро пожаловать, " + user.getName() + "!", Toast.LENGTH_SHORT).show();
+                            redirectToMain();
+                        } else {
+                            String error = response.optString("message", "Login failed");
+                            Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (JSONException e) {
+                        Toast.makeText(requireContext(), "Ошибка parsing JSON: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                requireActivity().runOnUiThread(() -> {
+                    showLoading(false);
+                    Toast.makeText(requireContext(), "Ошибка сети: " + error, Toast.LENGTH_SHORT).show();
                 });
             }
         });
-    }
-
-    private void handleLoginResponse(String response) {
-        showLoading(false);
-
-        try {
-            JSONObject jsonObject = new JSONObject(response);
-
-            if (jsonObject.has("error")) {
-                String error = jsonObject.getString("error");
-                Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
-            } else if (jsonObject.has("token")) {
-                String token = jsonObject.getString("token");
-                JSONObject userObject = jsonObject.getJSONObject("user");
-
-                User user = new User(
-                        userObject.getInt("id"),
-                        userObject.getString("email"),
-                        userObject.getString("name")
-                );
-
-                // Сохраняем данные пользователя
-                sharedPrefManager.userLogin(user, token);
-
-                Toast.makeText(requireContext(), "Добро пожаловать, " + user.getName() + "!", Toast.LENGTH_SHORT).show();
-                redirectToMain();
-            }
-        } catch (JSONException e) {
-            Toast.makeText(requireContext(), "Ошибка parsing JSON: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
     }
 
     private void showRegisterFragment() {

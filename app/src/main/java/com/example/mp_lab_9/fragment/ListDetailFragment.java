@@ -9,6 +9,7 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -18,7 +19,12 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.mp_lab_9.adapter.ProductAdapter;
 import com.example.mp_lab_9.data.model.Product;
 import com.example.mp_lab_9.data.model.ShoppingList;
+import com.example.mp_lab_9.network.ApiClient;
+import com.example.mp_lab_9.util.JsonParser;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,6 +40,7 @@ public class ListDetailFragment extends Fragment implements ProductAdapter.OnPro
     private List<Product> products;
     private int listId;
     private ShoppingList currentList;
+    private ApiClient apiClient;
 
     public static ListDetailFragment newInstance(int listId) {
         ListDetailFragment fragment = new ListDetailFragment();
@@ -57,6 +64,7 @@ public class ListDetailFragment extends Fragment implements ProductAdapter.OnPro
             listId = getArguments().getInt(ARG_LIST_ID);
         }
 
+        apiClient = new ApiClient(requireContext());
         initViews(view);
         setupRecyclerView();
         setupListeners();
@@ -84,29 +92,83 @@ public class ListDetailFragment extends Fragment implements ProductAdapter.OnPro
     }
 
     private void loadListDetails() {
-        // TODO: Загрузка деталей списка из БД
-        // Временные данные
-        currentList = new ShoppingList(listId, "Мой список", "2024-01-20", 5, 2, false);
-        updateProgress();
+        apiClient.getShoppingLists(new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(JSONObject response) {
+                requireActivity().runOnUiThread(() -> {
+                    try {
+                        if (response.getBoolean("success")) {
+                            JSONArray listsArray = response.getJSONArray("lists");
+                            for (int i = 0; i < listsArray.length(); i++) {
+                                JSONObject listJson = listsArray.getJSONObject(i);
+                                if (listJson.getInt("id") == listId) {
+                                    currentList = JsonParser.parseShoppingList(listJson);
+                                    updateProgress();
+                                    break;
+                                }
+                            }
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                currentList = new ShoppingList(listId, "Мой список", "2024-01-20", 5, 2, false);
+                updateProgress();
+            }
+        });
     }
 
     private void loadProducts() {
         showLoading(true);
 
-        // TODO: Загрузка товаров из БД или с сервера
-        // Временные данные
+        apiClient.getProducts(listId, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(JSONObject response) {
+                requireActivity().runOnUiThread(() -> {
+                    showLoading(false);
+                    try {
+                        if (response.getBoolean("success")) {
+                            JSONArray productsArray = response.getJSONArray("products");
+                            List<Product> productList = JsonParser.parseProducts(productsArray);
+
+                            products.clear();
+                            products.addAll(productList);
+                            adapter.notifyDataSetChanged();
+                            updateEmptyState();
+                            updateProgress();
+                        } else {
+                            Toast.makeText(requireContext(), "Не удалось загрузить товары", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (JSONException e) {
+                        Toast.makeText(requireContext(), "Ошибка parsing JSON: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                requireActivity().runOnUiThread(() -> {
+                    showLoading(false);
+                    Toast.makeText(requireContext(), "Ошибка сети: " + error, Toast.LENGTH_SHORT).show();
+                    loadLocalProducts();
+                });
+            }
+        });
+    }
+
+    private void loadLocalProducts() {
         List<Product> tempProducts = new ArrayList<>();
         tempProducts.add(new Product(1, "Молоко", 2, false));
         tempProducts.add(new Product(2, "Хлеб", 1, true));
         tempProducts.add(new Product(3, "Яйца", 10, false));
-        tempProducts.add(new Product(4, "Сыр", 1, false));
-        tempProducts.add(new Product(5, "Масло", 1, true));
 
         products.clear();
         products.addAll(tempProducts);
         adapter.notifyDataSetChanged();
-
-        showLoading(false);
         updateEmptyState();
         updateProgress();
     }
@@ -118,8 +180,6 @@ public class ListDetailFragment extends Fragment implements ProductAdapter.OnPro
 
             String progressText = completed + "/" + total + " товаров";
             textViewProgress.setText(progressText);
-
-            // TODO: Обновить прогресс-бар если есть
         }
     }
 
@@ -157,19 +217,76 @@ public class ListDetailFragment extends Fragment implements ProductAdapter.OnPro
     }
 
     private void addNewProduct(String productName, int quantity) {
-        // TODO: Добавление товара в БД и на сервер
-        Product newProduct = new Product(products.size() + 1, productName, quantity, false);
+        apiClient.addProduct(listId, productName, quantity, null, null, null,
+                new ApiClient.ApiCallback() {
+                    @Override
+                    public void onSuccess(JSONObject response) {
+                        requireActivity().runOnUiThread(() -> {
+                            try {
+                                if (response.getBoolean("success")) {
+                                    JSONObject productJson = response.getJSONObject("product");
+                                    Product newProduct = JsonParser.parseProduct(productJson);
 
-        products.add(newProduct);
-        adapter.notifyItemInserted(products.size() - 1);
-        updateEmptyState();
-        updateProgress();
+                                    products.add(newProduct);
+                                    adapter.notifyItemInserted(products.size() - 1);
+                                    updateEmptyState();
+                                    updateProgress();
+
+                                    Toast.makeText(requireContext(), "Товар добавлен", Toast.LENGTH_SHORT).show();
+                                } else {
+                                    Toast.makeText(requireContext(), "Не удалось добавить товар", Toast.LENGTH_SHORT).show();
+                                }
+                            } catch (JSONException e) {
+                                Toast.makeText(requireContext(), "Ошибка добавления товара", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        requireActivity().runOnUiThread(() -> {
+                            Toast.makeText(requireContext(), "Ошибка сети: " + error, Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                });
     }
 
     @Override
     public void onProductClick(Product product) {
-        // Переключение статуса покупки
-        toggleProductPurchaseStatus(product);
+        apiClient.updateProduct(product.getId(), !product.isPurchased(), null, null,
+                new ApiClient.ApiCallback() {
+                    @Override
+                    public void onSuccess(JSONObject response) {
+                        requireActivity().runOnUiThread(() -> {
+                            try {
+                                if (response.getBoolean("success")) {
+                                    product.setPurchased(!product.isPurchased());
+                                    int position = products.indexOf(product);
+                                    if (position != -1) {
+                                        adapter.notifyItemChanged(position);
+                                        updateProgress();
+                                    }
+                                } else {
+                                    product.setPurchased(!product.isPurchased());
+                                }
+                            } catch (JSONException e) {
+                                product.setPurchased(!product.isPurchased());
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        requireActivity().runOnUiThread(() -> {
+                            product.setPurchased(!product.isPurchased());
+                            int position = products.indexOf(product);
+                            if (position != -1) {
+                                adapter.notifyItemChanged(position);
+                            }
+                            Toast.makeText(requireContext(), "Ошибка сети: " + error, Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                });
     }
 
     @Override
@@ -180,17 +297,6 @@ public class ListDetailFragment extends Fragment implements ProductAdapter.OnPro
     @Override
     public void onProductDeleteClick(Product product) {
         showDeleteProductDialog(product);
-    }
-
-    private void toggleProductPurchaseStatus(Product product) {
-        product.setPurchased(!product.isPurchased());
-
-        // TODO: Обновление в БД и на сервере
-        int position = products.indexOf(product);
-        if (position != -1) {
-            adapter.notifyItemChanged(position);
-            updateProgress();
-        }
     }
 
     private void showProductOptionsDialog(Product product) {
@@ -238,14 +344,36 @@ public class ListDetailFragment extends Fragment implements ProductAdapter.OnPro
     }
 
     private void updateProduct(Product product, String newName, int newQuantity) {
-        // TODO: Обновление товара в БД и на сервере
-        product.setName(newName);
-        product.setQuantity(newQuantity);
+        apiClient.updateProduct(product.getId(), null, newQuantity, newName,
+                new ApiClient.ApiCallback() {
+                    @Override
+                    public void onSuccess(JSONObject response) {
+                        requireActivity().runOnUiThread(() -> {
+                            try {
+                                if (response.getBoolean("success")) {
+                                    product.setName(newName);
+                                    product.setQuantity(newQuantity);
+                                    int position = products.indexOf(product);
+                                    if (position != -1) {
+                                        adapter.notifyItemChanged(position);
+                                    }
+                                    Toast.makeText(requireContext(), "Товар обновлен", Toast.LENGTH_SHORT).show();
+                                } else {
+                                    Toast.makeText(requireContext(), "Не удалось обновить товар", Toast.LENGTH_SHORT).show();
+                                }
+                            } catch (JSONException e) {
+                                Toast.makeText(requireContext(), "Ошибка обновления товара", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
 
-        int position = products.indexOf(product);
-        if (position != -1) {
-            adapter.notifyItemChanged(position);
-        }
+                    @Override
+                    public void onError(String error) {
+                        requireActivity().runOnUiThread(() -> {
+                            Toast.makeText(requireContext(), "Ошибка сети: " + error, Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                });
     }
 
     private void showDeleteProductDialog(Product product) {
@@ -260,14 +388,36 @@ public class ListDetailFragment extends Fragment implements ProductAdapter.OnPro
     }
 
     private void deleteProduct(Product product) {
-        // TODO: Удаление товара из БД и с сервера
-        int position = products.indexOf(product);
-        if (position != -1) {
-            products.remove(position);
-            adapter.notifyItemRemoved(position);
-            updateEmptyState();
-            updateProgress();
-        }
+        apiClient.deleteProduct(product.getId(), new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(JSONObject response) {
+                requireActivity().runOnUiThread(() -> {
+                    try {
+                        if (response.getBoolean("success")) {
+                            int position = products.indexOf(product);
+                            if (position != -1) {
+                                products.remove(position);
+                                adapter.notifyItemRemoved(position);
+                                updateEmptyState();
+                                updateProgress();
+                                Toast.makeText(requireContext(), "Товар удален", Toast.LENGTH_SHORT).show();
+                            }
+                        } else {
+                            Toast.makeText(requireContext(), "Не удалось удалить товар", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (JSONException e) {
+                        Toast.makeText(requireContext(), "Ошибка удаления товара", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                requireActivity().runOnUiThread(() -> {
+                    Toast.makeText(requireContext(), "Ошибка сети: " + error, Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
     }
 
     private void showLoading(boolean show) {

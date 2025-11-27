@@ -14,7 +14,10 @@
             android:id="@+id/recyclerView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="8dp" />
+            android:paddingTop="64dp"
+            android:paddingHorizontal="8dp"
+            android:paddingBottom="8dp"
+            />
 
         <!-- Сообщение при пустом списке -->
         <TextView

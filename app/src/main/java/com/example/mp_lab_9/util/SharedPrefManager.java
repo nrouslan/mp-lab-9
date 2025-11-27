@@ -2,15 +2,13 @@ package com.example.mp_lab_9.util;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-
 import com.example.mp_lab_9.data.model.User;
+import com.google.gson.Gson;
 
 public class SharedPrefManager {
     private static final String SHARED_PREF_NAME = "smart_shopping_pref";
-    private static final String KEY_USER_ID = "key_user_id";
-    private static final String KEY_USER_EMAIL = "key_user_email";
-    private static final String KEY_USER_NAME = "key_user_name";
-    private static final String KEY_JWT_TOKEN = "key_jwt_token";
+    private static final String KEY_USER = "key_user";
+    private static final String KEY_TOKEN = "key_token";
     private static final String KEY_IS_LOGGED_IN = "key_is_logged_in";
 
     private static SharedPrefManager instance;
@@ -31,12 +29,12 @@ public class SharedPrefManager {
         SharedPreferences sharedPreferences = ctx.getSharedPreferences(SHARED_PREF_NAME, Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = sharedPreferences.edit();
 
-        editor.putBoolean(KEY_IS_LOGGED_IN, true);
-        editor.putInt(KEY_USER_ID, user.getId());
-        editor.putString(KEY_USER_EMAIL, user.getEmail());
-        editor.putString(KEY_USER_NAME, user.getName());
-        editor.putString(KEY_JWT_TOKEN, token);
+        Gson gson = new Gson();
+        String userJson = gson.toJson(user);
 
+        editor.putString(KEY_USER, userJson);
+        editor.putString(KEY_TOKEN, token);
+        editor.putBoolean(KEY_IS_LOGGED_IN, true);
         editor.apply();
     }
 
@@ -47,16 +45,17 @@ public class SharedPrefManager {
 
     public User getUser() {
         SharedPreferences sharedPreferences = ctx.getSharedPreferences(SHARED_PREF_NAME, Context.MODE_PRIVATE);
-        return new User(
-                sharedPreferences.getInt(KEY_USER_ID, -1),
-                sharedPreferences.getString(KEY_USER_EMAIL, null),
-                sharedPreferences.getString(KEY_USER_NAME, null)
-        );
+        String userJson = sharedPreferences.getString(KEY_USER, null);
+        if (userJson != null) {
+            Gson gson = new Gson();
+            return gson.fromJson(userJson, User.class);
+        }
+        return null;
     }
 
-    public String getJwtToken() {
+    public String getToken() {
         SharedPreferences sharedPreferences = ctx.getSharedPreferences(SHARED_PREF_NAME, Context.MODE_PRIVATE);
-        return sharedPreferences.getString(KEY_JWT_TOKEN, null);
+        return sharedPreferences.getString(KEY_TOKEN, null);
     }
 
     public void logout() {
@@ -64,11 +63,5 @@ public class SharedPrefManager {
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.clear();
         editor.apply();
-    }
-
-    // Новый метод для проверки наличия токена
-    public boolean hasValidToken() {
-        String token = getJwtToken();
-        return token != null && !token.isEmpty();
     }
 }

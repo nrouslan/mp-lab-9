@@ -7,6 +7,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -17,8 +18,13 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.example.mp_lab_9.R;
 import com.example.mp_lab_9.adapter.ShoppingListAdapter;
 import com.example.mp_lab_9.data.model.ShoppingList;
+import com.example.mp_lab_9.network.ApiClient;
+import com.example.mp_lab_9.util.JsonParser;
 import com.example.mp_lab_9.util.SharedPrefManager;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,6 +37,7 @@ public class MyListsFragment extends Fragment implements ShoppingListAdapter.OnL
     private ShoppingListAdapter adapter;
     private List<ShoppingList> shoppingLists;
     private SharedPrefManager sharedPrefManager;
+    private ApiClient apiClient;
 
     public MyListsFragment() {
         // Required empty public constructor
@@ -47,6 +54,7 @@ public class MyListsFragment extends Fragment implements ShoppingListAdapter.OnL
         super.onViewCreated(view, savedInstanceState);
 
         sharedPrefManager = SharedPrefManager.getInstance(requireContext());
+        apiClient = new ApiClient(requireContext());
         initViews(view);
         setupRecyclerView();
         setupListeners();
@@ -77,17 +85,51 @@ public class MyListsFragment extends Fragment implements ShoppingListAdapter.OnL
     }
 
     private void loadShoppingLists() {
-        // TODO: Загрузка списков из локальной БД или с сервера
-        // Временные данные для демонстрации
+        showLoading(true);
+
+        apiClient.getShoppingLists(new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(JSONObject response) {
+                requireActivity().runOnUiThread(() -> {
+                    showLoading(false);
+                    try {
+                        if (response.getBoolean("success")) {
+                            JSONArray listsArray = response.getJSONArray("lists");
+                            List<ShoppingList> loadedLists = JsonParser.parseShoppingLists(listsArray);
+
+                            shoppingLists.clear();
+                            shoppingLists.addAll(loadedLists);
+                            adapter.notifyDataSetChanged();
+                            updateEmptyState();
+                        } else {
+                            Toast.makeText(requireContext(), "Не удалось загрузить списки", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (JSONException e) {
+                        Toast.makeText(requireContext(), "Ошибка parsing JSON: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                requireActivity().runOnUiThread(() -> {
+                    showLoading(false);
+                    Toast.makeText(requireContext(), "Ошибка сети: " + error, Toast.LENGTH_SHORT).show();
+                    loadLocalLists();
+                });
+            }
+        });
+    }
+
+    private void loadLocalLists() {
+        // TODO: Загрузка списков из локальной БД SQLite
         List<ShoppingList> tempLists = new ArrayList<>();
         tempLists.add(new ShoppingList(1, "Покупки на неделю", "2024-01-15", 5, 2, false));
         tempLists.add(new ShoppingList(2, "Для вечеринки", "2024-01-16", 8, 8, true));
-        tempLists.add(new ShoppingList(3, "Продукты", "2024-01-17", 12, 3, false));
 
         shoppingLists.clear();
         shoppingLists.addAll(tempLists);
         adapter.notifyDataSetChanged();
-
         updateEmptyState();
     }
 
@@ -121,25 +163,45 @@ public class MyListsFragment extends Fragment implements ShoppingListAdapter.OnL
     }
 
     private void createNewShoppingList(String listName) {
-        // TODO: Создание нового списка в БД и на сервере
-        ShoppingList newList = new ShoppingList(
-                shoppingLists.size() + 1,
-                listName,
-                "2024-01-20",
-                0, 0, false
-        );
+        showLoading(true);
 
-        shoppingLists.add(0, newList);
-        adapter.notifyItemInserted(0);
-        updateEmptyState();
+        apiClient.createShoppingList(listName, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(JSONObject response) {
+                requireActivity().runOnUiThread(() -> {
+                    showLoading(false);
+                    try {
+                        if (response.getBoolean("success")) {
+                            JSONObject listJson = response.getJSONObject("list");
+                            ShoppingList newList = JsonParser.parseShoppingList(listJson);
 
-        // Прокрутка к новому элементу
-        recyclerView.scrollToPosition(0);
+                            shoppingLists.add(0, newList);
+                            adapter.notifyItemInserted(0);
+                            updateEmptyState();
+                            recyclerView.scrollToPosition(0);
+
+                            Toast.makeText(requireContext(), "Список создан", Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(requireContext(), "Не удалось создать список", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (JSONException e) {
+                        Toast.makeText(requireContext(), "Ошибка создания списка", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                requireActivity().runOnUiThread(() -> {
+                    showLoading(false);
+                    Toast.makeText(requireContext(), "Ошибка сети: " + error, Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
     }
 
     @Override
     public void onListClick(ShoppingList shoppingList) {
-        // Переход к деталям списка
         ListDetailFragment listDetailFragment = ListDetailFragment.newInstance(shoppingList.getId());
         requireActivity().getSupportFragmentManager().beginTransaction()
                 .replace(R.id.fragment_container, listDetailFragment)
@@ -191,12 +253,35 @@ public class MyListsFragment extends Fragment implements ShoppingListAdapter.OnL
     }
 
     private void updateShoppingList(ShoppingList shoppingList, String newName) {
-        // TODO: Обновление списка в БД и на сервере
-        shoppingList.setName(newName);
-        int position = shoppingLists.indexOf(shoppingList);
-        if (position != -1) {
-            adapter.notifyItemChanged(position);
-        }
+        apiClient.updateShoppingList(shoppingList.getId(), newName, null,
+                new ApiClient.ApiCallback() {
+                    @Override
+                    public void onSuccess(JSONObject response) {
+                        requireActivity().runOnUiThread(() -> {
+                            try {
+                                if (response.getBoolean("success")) {
+                                    shoppingList.setName(newName);
+                                    int position = shoppingLists.indexOf(shoppingList);
+                                    if (position != -1) {
+                                        adapter.notifyItemChanged(position);
+                                    }
+                                    Toast.makeText(requireContext(), "Список обновлен", Toast.LENGTH_SHORT).show();
+                                } else {
+                                    Toast.makeText(requireContext(), "Не удалось обновить список", Toast.LENGTH_SHORT).show();
+                                }
+                            } catch (JSONException e) {
+                                Toast.makeText(requireContext(), "Ошибка обновления списка", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        requireActivity().runOnUiThread(() -> {
+                            Toast.makeText(requireContext(), "Ошибка сети: " + error, Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                });
     }
 
     private void showDeleteListDialog(ShoppingList shoppingList) {
@@ -211,12 +296,42 @@ public class MyListsFragment extends Fragment implements ShoppingListAdapter.OnL
     }
 
     private void deleteShoppingList(ShoppingList shoppingList) {
-        // TODO: Удаление списка из БД и с сервера
-        int position = shoppingLists.indexOf(shoppingList);
-        if (position != -1) {
-            shoppingLists.remove(position);
-            adapter.notifyItemRemoved(position);
-            updateEmptyState();
+        apiClient.deleteShoppingList(shoppingList.getId(), new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(JSONObject response) {
+                requireActivity().runOnUiThread(() -> {
+                    try {
+                        if (response.getBoolean("success")) {
+                            int position = shoppingLists.indexOf(shoppingList);
+                            if (position != -1) {
+                                shoppingLists.remove(position);
+                                adapter.notifyItemRemoved(position);
+                                updateEmptyState();
+                                Toast.makeText(requireContext(), "Список удален", Toast.LENGTH_SHORT).show();
+                            }
+                        } else {
+                            Toast.makeText(requireContext(), "Не удалось удалить список", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (JSONException e) {
+                        Toast.makeText(requireContext(), "Ошибка удаления списка", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                requireActivity().runOnUiThread(() -> {
+                    Toast.makeText(requireContext(), "Ошибка сети: " + error, Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
+    }
+
+    private void showLoading(boolean show) {
+        if (show) {
+            swipeRefreshLayout.setRefreshing(true);
+        } else {
+            swipeRefreshLayout.setRefreshing(false);
         }
     }
 }
