@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Основные цвета приложения -->
+    <color name="colorPrimary">#2196F3</color>
+    <color name="colorPrimaryDark">#1976D2</color>
+    <color name="colorPrimaryLight">#BBDEFB</color>
+    <color name="colorAccent">#FF4081</color>
+
+    <!-- Цвета для навигации (исправленные) -->
+    <color name="colorShoppingPrimary">#2196F3</color>
+    <color name="colorGray500">#9E9E9E</color>
+
+    <!-- Цвета для иконок -->
+    <color name="colorIconActive">#2196F3</color>
+    <color name="colorIconPrimary">#757575</color>
+
+    <!-- Цвета для текста -->
+    <color name="colorTextPrimary">#212121</color>
+    <color name="colorTextSecondary">#757575</color>
+    <color name="colorTextHint">#BDBDBD</color>
+
+    <!-- Фоновые цвета -->
+    <color name="background">#FAFAFA</color>
+    <color name="surface">#FFFFFF</color>
+
+    <!-- Цвета состояний -->
+    <color name="success">#4CAF50</color>
+    <color name="warning">#FF9800</color>
+    <color name="error">#F44336</color>
+    <color name="info">#2196F3</color>
+
+    <!-- Дополнительные цвета -->
+    <color name="divider">#E0E0E0</color>
+    <color name="shadow">#1E000000</color>
+    <color name="overlay">#66000000</color>
+
+    <!-- Цвета для состояний списков -->
+    <color name="list_completed">#4CAF50</color>
+    <color name="list_active">#2196F3</color>
+    <color name="list_archived">#9E9E9E</color>
+
+    <!-- Цвета для состояний товаров -->
+    <color name="product_purchased">#4CAF50</color>
+    <color name="product_not_purchased">#F44336</color>
+
+    <!-- Material Design Colors -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="transparent">#00000000</color>
+</resources>

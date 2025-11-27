@@ -1,0 +1,96 @@
+<resources>
+    <!-- Основные строки приложения -->
+    <string name="app_name">Умный список покупок</string>
+    <string name="app_subtitle">Организуйте ваши покупки</string>
+    <string name="app_logo">Логотип приложения</string>
+
+    <!-- Навигация -->
+    <string name="title_my_lists">Мои списки</string>
+    <string name="title_profile">Профиль</string>
+    <string name="nav_my_lists">Мои списки</string>
+    <string name="nav_profile">Профиль</string>
+
+    <!-- Кнопки и действия -->
+    <string name="login">Войти</string>
+    <string name="register">Зарегистрироваться</string>
+    <string name="logout">Выйти</string>
+    <string name="save">Сохранить</string>
+    <string name="cancel">Отмена</string>
+    <string name="delete">Удалить</string>
+    <string name="edit">Редактировать</string>
+    <string name="add">Добавить</string>
+    <string name="create">Создать</string>
+    <string name="confirm">Подтвердить</string>
+
+    <!-- Формы авторизации -->
+    <string name="email">Email</string>
+    <string name="password">Пароль</string>
+    <string name="confirm_password">Подтвердите пароль</string>
+    <string name="name">Имя</string>
+    <string name="login_title">Вход в аккаунт</string>
+    <string name="register_title">Регистрация</string>
+    <string name="no_account">Нет аккаунта? Зарегистрируйтесь</string>
+    <string name="have_account">Уже есть аккаунт? Войдите</string>
+
+    <!-- Списки покупок -->
+    <string name="my_lists">Мои списки</string>
+    <string name="create_new_list">Создать новый список</string>
+    <string name="list_name">Название списка</string>
+    <string name="example_list_name">Например: Покупки на неделю</string>
+    <string name="empty_lists_message">Списков покупок пока нет\n\nНажмите + чтобы создать первый список</string>
+    <string name="delete_list_confirmation">Вы уверены, что хотите удалить список \"%s\"?</string>
+    <string name="list_deleted">Список удален</string>
+    <string name="list_created">Список создан</string>
+    <string name="list_updated">Список обновлен</string>
+
+    <!-- Товары -->
+    <string name="products">Товары</string>
+    <string name="add_product">Добавить товар</string>
+    <string name="product_name">Название товара</string>
+    <string name="quantity">Количество</string>
+    <string name="example_product_name">Например: Молоко</string>
+    <string name="empty_products_message">В списке пока нет товаров\n\nНажмите + чтобы добавить первый товар</string>
+    <string name="delete_product_confirmation">Удалить \"%s\" из списка?</string>
+    <string name="product_added">Товар добавлен</string>
+    <string name="product_updated">Товар обновлен</string>
+    <string name="product_deleted">Товар удален</string>
+    <string name="products_count">%d/%d товаров</string>
+    <string name="purchased">куплено</string>
+    <string name="not_purchased">не куплено</string>
+
+    <!-- Профиль -->
+    <string name="profile">Профиль</string>
+    <string name="statistics">Статистика</string>
+    <string name="settings">Настройки</string>
+    <string name="push_notifications">Push-уведомления</string>
+    <string name="total_lists">Всего списков: %d</string>
+    <string name="completed_lists">Завершено: %d</string>
+    <string name="active_lists">Активных: %d</string>
+    <string name="logout_confirmation">Вы уверены, что хотите выйти?</string>
+
+    <!-- Уведомления и сообщения -->
+    <string name="loading">Загрузка...</string>
+    <string name="error">Ошибка</string>
+    <string name="success">Успешно</string>
+    <string name="network_error">Ошибка сети</string>
+    <string name="server_error">Ошибка сервера</string>
+    <string name="unknown_error">Неизвестная ошибка</string>
+
+    <!-- Валидация -->
+    <string name="error_required">Обязательное поле</string>
+    <string name="error_email_invalid">Некорректный email</string>
+    <string name="error_password_short">Пароль должен содержать минимум 6 символов</string>
+    <string name="error_passwords_not_match">Пароли не совпадают</string>
+
+    <!-- Диалоги -->
+    <string name="dialog_edit_list">Редактировать список</string>
+    <string name="dialog_edit_product">Редактировать товар</string>
+    <string name="dialog_delete">Удаление</string>
+    <string name="dialog_logout">Выход из аккаунта</string>
+
+    <!-- Прочее -->
+    <string name="add_new_list">Добавить новый список</string>
+    <string name="add_new_product">Добавить новый товар</string>
+    <string name="pull_to_refresh">Потяните для обновления</string>
+    <string name="last_sync">Последняя синхронизация: %s</string>
+</resources>
