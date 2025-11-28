@@ -116,7 +116,7 @@ public class ListDetailFragment extends Fragment implements ProductAdapter.OnPro
 
             @Override
             public void onError(String error) {
-                currentList = new ShoppingList(listId, "Мой список", "2024-01-20", 5, 2, false);
+                currentList = new ShoppingList(listId, "Мой список", "2024-01-20", false);
                 updateProgress();
             }
         });
@@ -174,12 +174,20 @@ public class ListDetailFragment extends Fragment implements ProductAdapter.OnPro
     }
 
     private void updateProgress() {
-        if (currentList != null) {
+        if (!products.isEmpty()) {
             int total = products.size();
-            int completed = (int) products.stream().filter(Product::isPurchased).count();
+            int completed = 0;
+
+            for (Product product : products) {
+                if (product.isPurchased()) {
+                    completed++;
+                }
+            }
 
             String progressText = completed + "/" + total + " товаров";
             textViewProgress.setText(progressText);
+        } else {
+            textViewProgress.setText("0/0 товаров");
         }
     }
 
@@ -217,60 +225,70 @@ public class ListDetailFragment extends Fragment implements ProductAdapter.OnPro
     }
 
     private void addNewProduct(String productName, int quantity) {
-        apiClient.addProduct(listId, productName, quantity, null, null, null,
-                new ApiClient.ApiCallback() {
-                    @Override
-                    public void onSuccess(JSONObject response) {
-                        requireActivity().runOnUiThread(() -> {
-                            try {
-                                if (response.getBoolean("success")) {
-                                    JSONObject productJson = response.getJSONObject("product");
-                                    Product newProduct = JsonParser.parseProduct(productJson);
+        apiClient.addProduct(listId, productName, quantity, new ApiClient.ApiCallback() {
+            @Override
+            public void onSuccess(JSONObject response) {
+                requireActivity().runOnUiThread(() -> {
+                    try {
+                        if (response.getBoolean("success")) {
+                            JSONObject productJson = response.getJSONObject("product");
+                            Product newProduct = JsonParser.parseProduct(productJson);
 
-                                    products.add(newProduct);
-                                    adapter.notifyItemInserted(products.size() - 1);
-                                    updateEmptyState();
-                                    updateProgress();
+                            products.add(newProduct);
+                            adapter.notifyItemInserted(products.size() - 1);
+                            updateEmptyState();
+                            updateProgress();
 
-                                    Toast.makeText(requireContext(), "Товар добавлен", Toast.LENGTH_SHORT).show();
-                                } else {
-                                    Toast.makeText(requireContext(), "Не удалось добавить товар", Toast.LENGTH_SHORT).show();
-                                }
-                            } catch (JSONException e) {
-                                Toast.makeText(requireContext(), "Ошибка добавления товара", Toast.LENGTH_SHORT).show();
-                            }
-                        });
-                    }
-
-                    @Override
-                    public void onError(String error) {
-                        requireActivity().runOnUiThread(() -> {
-                            Toast.makeText(requireContext(), "Ошибка сети: " + error, Toast.LENGTH_SHORT).show();
-                        });
+                            Toast.makeText(requireContext(), "Товар добавлен", Toast.LENGTH_SHORT).show();
+                        } else {
+                            String error = response.optString("message", "Не удалось добавить товар");
+                            Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (JSONException e) {
+                        Toast.makeText(requireContext(), "Ошибка добавления товара", Toast.LENGTH_SHORT).show();
                     }
                 });
+            }
+
+            @Override
+            public void onError(String error) {
+                requireActivity().runOnUiThread(() -> {
+                    Toast.makeText(requireContext(), "Ошибка сети: " + error, Toast.LENGTH_SHORT).show();
+                });
+            }
+        });
     }
 
     @Override
     public void onProductClick(Product product) {
-        apiClient.updateProduct(product.getId(), !product.isPurchased(), null, null,
+        // Инвертируем статус покупки
+        boolean newPurchasedStatus = !product.isPurchased();
+
+        apiClient.updateProduct(product.getId(), newPurchasedStatus, null, null,
                 new ApiClient.ApiCallback() {
                     @Override
                     public void onSuccess(JSONObject response) {
                         requireActivity().runOnUiThread(() -> {
                             try {
                                 if (response.getBoolean("success")) {
-                                    product.setPurchased(!product.isPurchased());
+                                    // Обновляем локально только после успешного ответа от сервера
+                                    product.setPurchased(newPurchasedStatus);
                                     int position = products.indexOf(product);
                                     if (position != -1) {
                                         adapter.notifyItemChanged(position);
                                         updateProgress();
                                     }
                                 } else {
-                                    product.setPurchased(!product.isPurchased());
+                                    // Откатываем изменение в случае ошибки
+                                    product.setPurchased(!newPurchasedStatus);
+                                    adapter.notifyItemChanged(products.indexOf(product));
+                                    String error = JsonParser.getErrorMessage(response);
+                                    Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
                                 }
                             } catch (JSONException e) {
-                                product.setPurchased(!product.isPurchased());
+                                product.setPurchased(!newPurchasedStatus);
+                                adapter.notifyItemChanged(products.indexOf(product));
+                                Toast.makeText(requireContext(), "Ошибка обновления", Toast.LENGTH_SHORT).show();
                             }
                         });
                     }
@@ -278,11 +296,9 @@ public class ListDetailFragment extends Fragment implements ProductAdapter.OnPro
                     @Override
                     public void onError(String error) {
                         requireActivity().runOnUiThread(() -> {
-                            product.setPurchased(!product.isPurchased());
-                            int position = products.indexOf(product);
-                            if (position != -1) {
-                                adapter.notifyItemChanged(position);
-                            }
+                            // Откатываем изменение в случае ошибки сети
+                            product.setPurchased(!newPurchasedStatus);
+                            adapter.notifyItemChanged(products.indexOf(product));
                             Toast.makeText(requireContext(), "Ошибка сети: " + error, Toast.LENGTH_SHORT).show();
                         });
                     }

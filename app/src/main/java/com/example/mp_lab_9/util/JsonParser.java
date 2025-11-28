@@ -13,11 +13,10 @@ public class JsonParser {
     public static ShoppingList parseShoppingList(JSONObject json) throws JSONException {
         return new ShoppingList(
                 json.getInt("id"),
+                json.optInt("user_id", 0),
                 json.getString("name"),
                 json.getString("created_at"),
-                json.getInt("total_products"),
-                json.getInt("purchased_products"),
-                json.getBoolean("is_completed")
+                json.optBoolean("is_completed", false)
         );
     }
 
@@ -30,26 +29,14 @@ public class JsonParser {
     }
 
     public static Product parseProduct(JSONObject json) throws JSONException {
-        Product product = new Product(
+        return new Product(
                 json.getInt("id"),
-                json.getInt("list_id"),
+                json.optInt("list_id", 0),
                 json.getString("name"),
-                json.getInt("quantity"),
-                json.getBoolean("is_purchased"),
-                json.getString("created_at")
+                json.optInt("quantity", 1),
+                json.optBoolean("is_purchased", false),
+                json.optString("created_at", "")
         );
-
-        if (json.has("category") && !json.isNull("category")) {
-            product.setCategory(json.getString("category"));
-        }
-        if (json.has("price") && !json.isNull("price")) {
-            product.setPrice(json.getDouble("price"));
-        }
-        if (json.has("notes") && !json.isNull("notes")) {
-            product.setNotes(json.getString("notes"));
-        }
-
-        return product;
     }
 
     public static List<Product> parseProducts(JSONArray jsonArray) throws JSONException {
@@ -58,5 +45,9 @@ public class JsonParser {
             products.add(parseProduct(jsonArray.getJSONObject(i)));
         }
         return products;
+    }
+
+    public static String getErrorMessage(JSONObject response) {
+        return response.optString("message", "Unknown error occurred");
     }
 }

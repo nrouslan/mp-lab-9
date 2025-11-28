@@ -12,6 +12,7 @@ public class Product {
     private double price;
     private String unit;
 
+    // Конструкторы
     public Product(int id, String name, int quantity, boolean isPurchased) {
         this.id = id;
         this.name = name;
@@ -26,6 +27,20 @@ public class Product {
         this.quantity = quantity;
         this.isPurchased = isPurchased;
         this.createdAt = createdAt;
+    }
+
+    // Полный конструктор для JSON парсинга
+    public Product(int id, int listId, String name, int quantity, boolean isPurchased,
+                   String createdAt, String category, double price, String notes) {
+        this.id = id;
+        this.listId = listId;
+        this.name = name;
+        this.quantity = quantity;
+        this.isPurchased = isPurchased;
+        this.createdAt = createdAt;
+        this.category = category;
+        this.price = price;
+        this.notes = notes;
     }
 
     // Геттеры и сеттеры

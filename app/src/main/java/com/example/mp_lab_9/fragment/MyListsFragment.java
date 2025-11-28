@@ -5,7 +5,10 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
@@ -33,7 +36,9 @@ public class MyListsFragment extends Fragment implements ShoppingListAdapter.OnL
     private RecyclerView recyclerView;
     private SwipeRefreshLayout swipeRefreshLayout;
     private FloatingActionButton fabAddList;
-    private TextView textViewEmpty;
+    private LinearLayout emptyStateContainer;
+    private ProgressBar progressBar;
+    private Button buttonCreateFirstList;
     private ShoppingListAdapter adapter;
     private List<ShoppingList> shoppingLists;
     private SharedPrefManager sharedPrefManager;
@@ -65,7 +70,9 @@ public class MyListsFragment extends Fragment implements ShoppingListAdapter.OnL
         recyclerView = view.findViewById(R.id.recyclerView);
         swipeRefreshLayout = view.findViewById(R.id.swipeRefreshLayout);
         fabAddList = view.findViewById(R.id.fabAddList);
-        textViewEmpty = view.findViewById(R.id.textViewEmpty);
+        emptyStateContainer = view.findViewById(R.id.emptyStateContainer);
+        progressBar = view.findViewById(R.id.progressBar);
+        buttonCreateFirstList = view.findViewById(R.id.buttonCreateFirstList);
     }
 
     private void setupRecyclerView() {
@@ -78,9 +85,10 @@ public class MyListsFragment extends Fragment implements ShoppingListAdapter.OnL
     private void setupListeners() {
         fabAddList.setOnClickListener(v -> showCreateListDialog());
 
+        buttonCreateFirstList.setOnClickListener(v -> showCreateListDialog());
+
         swipeRefreshLayout.setOnRefreshListener(() -> {
             loadShoppingLists();
-            swipeRefreshLayout.setRefreshing(false);
         });
     }
 
@@ -92,6 +100,7 @@ public class MyListsFragment extends Fragment implements ShoppingListAdapter.OnL
             public void onSuccess(JSONObject response) {
                 requireActivity().runOnUiThread(() -> {
                     showLoading(false);
+                    swipeRefreshLayout.setRefreshing(false);
                     try {
                         if (response.getBoolean("success")) {
                             JSONArray listsArray = response.getJSONArray("lists");
@@ -103,9 +112,11 @@ public class MyListsFragment extends Fragment implements ShoppingListAdapter.OnL
                             updateEmptyState();
                         } else {
                             Toast.makeText(requireContext(), "Не удалось загрузить списки", Toast.LENGTH_SHORT).show();
+                            updateEmptyState();
                         }
                     } catch (JSONException e) {
                         Toast.makeText(requireContext(), "Ошибка parsing JSON: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        updateEmptyState();
                     }
                 });
             }
@@ -114,6 +125,7 @@ public class MyListsFragment extends Fragment implements ShoppingListAdapter.OnL
             public void onError(String error) {
                 requireActivity().runOnUiThread(() -> {
                     showLoading(false);
+                    swipeRefreshLayout.setRefreshing(false);
                     Toast.makeText(requireContext(), "Ошибка сети: " + error, Toast.LENGTH_SHORT).show();
                     loadLocalLists();
                 });
@@ -123,23 +135,23 @@ public class MyListsFragment extends Fragment implements ShoppingListAdapter.OnL
 
     private void loadLocalLists() {
         // TODO: Загрузка списков из локальной БД SQLite
-        List<ShoppingList> tempLists = new ArrayList<>();
-        tempLists.add(new ShoppingList(1, "Покупки на неделю", "2024-01-15", 5, 2, false));
-        tempLists.add(new ShoppingList(2, "Для вечеринки", "2024-01-16", 8, 8, true));
-
+        // Временно используем пустой список для демонстрации
         shoppingLists.clear();
-        shoppingLists.addAll(tempLists);
         adapter.notifyDataSetChanged();
         updateEmptyState();
     }
 
     private void updateEmptyState() {
         if (shoppingLists.isEmpty()) {
-            textViewEmpty.setVisibility(View.VISIBLE);
+            // Показываем информационное окно "списков нет"
+            emptyStateContainer.setVisibility(View.VISIBLE);
             recyclerView.setVisibility(View.GONE);
+            fabAddList.setVisibility(View.GONE); // Скрываем FAB когда показываем пустое состояние
         } else {
-            textViewEmpty.setVisibility(View.GONE);
+            // Скрываем информационное окно, показываем списки
+            emptyStateContainer.setVisibility(View.GONE);
             recyclerView.setVisibility(View.VISIBLE);
+            fabAddList.setVisibility(View.VISIBLE);
         }
     }
 
@@ -155,11 +167,17 @@ public class MyListsFragment extends Fragment implements ShoppingListAdapter.OnL
             String listName = editTextListName.getText().toString().trim();
             if (!listName.isEmpty()) {
                 createNewShoppingList(listName);
+            } else {
+                Toast.makeText(requireContext(), "Введите название списка", Toast.LENGTH_SHORT).show();
             }
         });
         builder.setNegativeButton("Отмена", null);
 
-        builder.show();
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
+        // Фокус на поле ввода и показ клавиатуры
+        editTextListName.requestFocus();
     }
 
     private void createNewShoppingList(String listName) {
@@ -182,7 +200,8 @@ public class MyListsFragment extends Fragment implements ShoppingListAdapter.OnL
 
                             Toast.makeText(requireContext(), "Список создан", Toast.LENGTH_SHORT).show();
                         } else {
-                            Toast.makeText(requireContext(), "Не удалось создать список", Toast.LENGTH_SHORT).show();
+                            String error = response.optString("message", "Не удалось создать список");
+                            Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
                         }
                     } catch (JSONException e) {
                         Toast.makeText(requireContext(), "Ошибка создания списка", Toast.LENGTH_SHORT).show();
@@ -194,7 +213,7 @@ public class MyListsFragment extends Fragment implements ShoppingListAdapter.OnL
             public void onError(String error) {
                 requireActivity().runOnUiThread(() -> {
                     showLoading(false);
-                    Toast.makeText(requireContext(), "Ошибка сети: " + error, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(requireContext(), "Ошибка: " + error, Toast.LENGTH_SHORT).show();
                 });
             }
         });
@@ -329,9 +348,19 @@ public class MyListsFragment extends Fragment implements ShoppingListAdapter.OnL
 
     private void showLoading(boolean show) {
         if (show) {
-            swipeRefreshLayout.setRefreshing(true);
+            progressBar.setVisibility(View.VISIBLE);
+            recyclerView.setVisibility(View.GONE);
+            emptyStateContainer.setVisibility(View.GONE);
+            fabAddList.setVisibility(View.GONE);
         } else {
-            swipeRefreshLayout.setRefreshing(false);
+            progressBar.setVisibility(View.GONE);
         }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // При возвращении на фрагмент обновляем данные
+        loadShoppingLists();
     }
 }

@@ -1,10 +1,8 @@
 package com.example.mp_lab_9.adapter;
 
-import android.graphics.Paint;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -88,17 +86,11 @@ public class ShoppingListAdapter extends RecyclerView.Adapter<ShoppingListAdapte
     static class ViewHolder extends RecyclerView.ViewHolder {
         private TextView textViewListName;
         private TextView textViewDate;
-        private TextView textViewProgress;
-        private ProgressBar progressBar;
-        private View completedIndicator;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
             textViewListName = itemView.findViewById(R.id.textViewListName);
             textViewDate = itemView.findViewById(R.id.textViewDate);
-            textViewProgress = itemView.findViewById(R.id.textViewProgress);
-            progressBar = itemView.findViewById(R.id.progressBar);
-            completedIndicator = itemView.findViewById(R.id.completedIndicator);
         }
 
         public void bind(ShoppingList list, OnListClickListener listener) {
@@ -108,37 +100,6 @@ public class ShoppingListAdapter extends RecyclerView.Adapter<ShoppingListAdapte
             // Форматирование даты
             String formattedDate = DateUtils.formatDate(list.getCreatedAt());
             textViewDate.setText(formattedDate);
-
-            // Установка прогресса
-            int total = list.getTotalProducts();
-            int purchased = list.getPurchasedProducts();
-            String progressText = itemView.getContext().getString(
-                    R.string.products_count, purchased, total);
-            textViewProgress.setText(progressText);
-
-            // Настройка прогресс-бара
-            if (total > 0) {
-                progressBar.setMax(total);
-                progressBar.setProgress(purchased);
-                progressBar.setVisibility(View.VISIBLE);
-            } else {
-                progressBar.setVisibility(View.GONE);
-            }
-
-            // Визуальное отображение статуса завершения
-            if (list.isCompleted()) {
-                textViewListName.setPaintFlags(textViewListName.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
-                textViewListName.setAlpha(0.6f);
-                if (completedIndicator != null) {
-                    completedIndicator.setVisibility(View.VISIBLE);
-                }
-            } else {
-                textViewListName.setPaintFlags(textViewListName.getPaintFlags() & (~Paint.STRIKE_THRU_TEXT_FLAG));
-                textViewListName.setAlpha(1.0f);
-                if (completedIndicator != null) {
-                    completedIndicator.setVisibility(View.GONE);
-                }
-            }
 
             // Обработчики кликов
             itemView.setOnClickListener(v -> {

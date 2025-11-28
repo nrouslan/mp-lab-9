@@ -2,7 +2,6 @@ package com.example.mp_lab_9.network;
 
 import android.content.Context;
 import com.example.mp_lab_9.util.SharedPrefManager;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import java.util.concurrent.Executor;
@@ -34,7 +33,7 @@ public class ApiClient {
             return;
         }
 
-        executeRequest(ApiConfig.LOGIN, "POST", null, null, jsonBody.toString(), callback);
+        executeRequest(ApiConfig.LOGIN, "POST", jsonBody.toString(), callback);
     }
 
     public void register(String name, String email, String password, ApiCallback callback) {
@@ -48,13 +47,13 @@ public class ApiClient {
             return;
         }
 
-        executeRequest(ApiConfig.REGISTER, "POST", null, null, jsonBody.toString(), callback);
+        executeRequest(ApiConfig.REGISTER, "POST", jsonBody.toString(), callback);
     }
 
     // === СПИСКИ ПОКУПОК ===
 
     public void getShoppingLists(ApiCallback callback) {
-        executeRequest(ApiConfig.GET_LISTS, "GET", null, null, null, callback);
+        executeRequest(ApiConfig.GET_LISTS, "GET", null, callback);
     }
 
     public void createShoppingList(String name, ApiCallback callback) {
@@ -66,7 +65,7 @@ public class ApiClient {
             return;
         }
 
-        executeRequest(ApiConfig.CREATE_LIST, "POST", null, null, jsonBody.toString(), callback);
+        executeRequest(ApiConfig.CREATE_LIST, "POST", jsonBody.toString(), callback);
     }
 
     public void updateShoppingList(int listId, String name, Boolean isCompleted, ApiCallback callback) {
@@ -80,7 +79,7 @@ public class ApiClient {
             return;
         }
 
-        executeRequest(ApiConfig.UPDATE_LIST, "POST", null, null, jsonBody.toString(), callback);
+        executeRequest(ApiConfig.UPDATE_LIST, "POST", jsonBody.toString(), callback);
     }
 
     public void deleteShoppingList(int listId, ApiCallback callback) {
@@ -92,32 +91,28 @@ public class ApiClient {
             return;
         }
 
-        executeRequest(ApiConfig.DELETE_LIST, "POST", null, null, jsonBody.toString(), callback);
+        executeRequest(ApiConfig.DELETE_LIST, "POST", jsonBody.toString(), callback);
     }
 
     // === ТОВАРЫ ===
 
     public void getProducts(int listId, ApiCallback callback) {
         String url = ApiConfig.GET_PRODUCTS + "?list_id=" + listId;
-        executeRequest(url, "GET", null, null, null, callback);
+        executeRequest(url, "GET", null, callback);
     }
 
-    public void addProduct(int listId, String name, int quantity, String category,
-                           Double price, String notes, ApiCallback callback) {
+    public void addProduct(int listId, String name, int quantity, ApiCallback callback) {
         JSONObject jsonBody = new JSONObject();
         try {
             jsonBody.put("list_id", listId);
             jsonBody.put("name", name);
             jsonBody.put("quantity", quantity);
-            if (category != null) jsonBody.put("category", category);
-            if (price != null) jsonBody.put("price", price);
-            if (notes != null) jsonBody.put("notes", notes);
         } catch (JSONException e) {
             callback.onError("JSON error: " + e.getMessage());
             return;
         }
 
-        executeRequest(ApiConfig.ADD_PRODUCT, "POST", null, null, jsonBody.toString(), callback);
+        executeRequest(ApiConfig.ADD_PRODUCT, "POST", jsonBody.toString(), callback);
     }
 
     public void updateProduct(int productId, Boolean isPurchased, Integer quantity,
@@ -133,7 +128,7 @@ public class ApiClient {
             return;
         }
 
-        executeRequest(ApiConfig.UPDATE_PRODUCT, "POST", null, null, jsonBody.toString(), callback);
+        executeRequest(ApiConfig.UPDATE_PRODUCT, "POST", jsonBody.toString(), callback);
     }
 
     public void deleteProduct(int productId, ApiCallback callback) {
@@ -145,13 +140,12 @@ public class ApiClient {
             return;
         }
 
-        executeRequest(ApiConfig.DELETE_PRODUCT, "POST", null, null, jsonBody.toString(), callback);
+        executeRequest(ApiConfig.DELETE_PRODUCT, "POST", jsonBody.toString(), callback);
     }
 
     // === ОСНОВНОЙ МЕТОД ДЛЯ ВСЕХ ЗАПРОСОВ ===
 
-    private void executeRequest(String url, String method, String[] fields,
-                                String[] data, String jsonBody, ApiCallback callback) {
+    private void executeRequest(String url, String method, String jsonBody, ApiCallback callback) {
         Executor executor = Executors.newSingleThreadExecutor();
         executor.execute(() -> {
             try {
@@ -159,41 +153,55 @@ public class ApiClient {
 
                 if (jsonBody != null) {
                     putData = new PutData(url, method, jsonBody);
-                    putData.addHeader(ApiConfig.HEADER_CONTENT_TYPE, ApiConfig.CONTENT_TYPE_JSON);
-                } else if (fields != null && data != null) {
-                    putData = new PutData(url, method, fields, data);
-                    putData.addHeader(ApiConfig.HEADER_CONTENT_TYPE, "application/x-www-form-urlencoded");
+                    putData.addHeader("Content-Type", "application/json");
                 } else {
                     putData = new PutData(url, method);
                 }
 
                 // Добавляем токен авторизации для защищенных endpoints
-                if (!url.contains("register.php") && !url.contains("login.php")) {
+                if (sharedPrefManager.isLoggedIn() &&
+                        !url.contains("register") && !url.contains("login")) {
                     String token = sharedPrefManager.getToken();
-                    if (token == null) {
-                        // Если токена нет, сразу возвращаем ошибку
-                        callback.onError("Not authenticated");
-                        return;
+                    if (token != null && !token.isEmpty()) {
+                        putData.addHeader("Authorization", "Bearer " + token);
                     }
-                    putData.addHeader(ApiConfig.HEADER_AUTHORIZATION,
-                            ApiConfig.BEARER_PREFIX + token);
                 }
 
                 if (putData.startPut()) {
                     if (putData.onComplete()) {
                         String result = putData.getResult();
+
+                        // Проверяем, является ли ответ пустым
+                        if (result == null || result.trim().isEmpty()) {
+                            callback.onError("Empty response from server");
+                            return;
+                        }
+
                         try {
                             JSONObject response = new JSONObject(result);
 
                             if (putData.isSuccess()) {
                                 callback.onSuccess(response);
                             } else {
-                                String errorMessage = response.optString("message",
-                                        response.optString("error", "Request failed with code: " + putData.getResponseCode()));
+                                // Пытаемся получить сообщение об ошибке из ответа
+                                String errorMessage = "Request failed";
+                                if (response.has("message")) {
+                                    errorMessage = response.getString("message");
+                                } else if (response.has("error")) {
+                                    errorMessage = response.getString("error");
+                                }
                                 callback.onError(errorMessage);
                             }
                         } catch (JSONException e) {
-                            callback.onError("Invalid JSON response: " + result);
+                            // Если ответ не JSON, возвращаем как есть
+                            if (putData.isSuccess()) {
+                                JSONObject successResponse = new JSONObject();
+                                successResponse.put("success", true);
+                                successResponse.put("raw_response", result);
+                                callback.onSuccess(successResponse);
+                            } else {
+                                callback.onError("Server error: " + result);
+                            }
                         }
                     } else {
                         callback.onError("Request timeout");
@@ -202,7 +210,7 @@ public class ApiClient {
                     callback.onError("Failed to start request");
                 }
             } catch (Exception e) {
-                callback.onError("Exception: " + e.getMessage());
+                callback.onError("Network error: " + e.getMessage());
             }
         });
     }

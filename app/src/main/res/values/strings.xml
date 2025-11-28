@@ -93,4 +93,10 @@
     <string name="add_new_product">Добавить новый товар</string>
     <string name="pull_to_refresh">Потяните для обновления</string>
     <string name="last_sync">Последняя синхронизация: %s</string>
+
+    <string name="empty_lists_icon">Иконка пустых списков</string>
+    <string name="no_lists_title">Списков покупок пока нет</string>
+    <string name="no_lists_description">Создайте свой первый список покупок, чтобы начать организованные покупки</string>
+    <string name="create_first_list">Создать первый список</string>
+
 </resources>
