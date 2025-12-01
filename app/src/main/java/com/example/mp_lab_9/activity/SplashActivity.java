@@ -20,12 +20,7 @@ public class SplashActivity extends AppCompatActivity {
 
         sharedPrefManager = SharedPrefManager.getInstance(this);
 
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                checkAuthentication();
-            }
-        }, SPLASH_DELAY);
+        new Handler().postDelayed(() -> checkAuthentication(), SPLASH_DELAY);
     }
 
     private void checkAuthentication() {

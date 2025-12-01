@@ -23,9 +23,9 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
         void onProductDeleteClick(Product product);
     }
 
-    private List<Product> products;
-    private OnProductClickListener listener;
-    private boolean showDeleteButton;
+    private final List<Product> products;
+    private final OnProductClickListener listener;
+    private final boolean showDeleteButton;
 
     public ProductAdapter(List<Product> products, OnProductClickListener listener) {
         this(products, listener, true);
@@ -47,8 +47,7 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        Product product = products.get(position);
-        holder.bind(product, listener, showDeleteButton);
+        holder.bind(products.get(position));
     }
 
     @Override
@@ -56,72 +55,12 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
         return products.size();
     }
 
-    public void updateData(List<Product> newProducts) {
-        this.products.clear();
-        this.products.addAll(newProducts);
-        notifyDataSetChanged();
-    }
-
-    public void addItem(Product product) {
-        products.add(product);
-        notifyItemInserted(products.size() - 1);
-    }
-
-    public void updateItem(Product product) {
-        int position = getItemPosition(product.getId());
-        if (position != -1) {
-            products.set(position, product);
-            notifyItemChanged(position);
-        }
-    }
-
-    public void removeItem(int productId) {
-        int position = getItemPosition(productId);
-        if (position != -1) {
-            products.remove(position);
-            notifyItemRemoved(position);
-        }
-    }
-
-    public void toggleProduct(int productId) {
-        int position = getItemPosition(productId);
-        if (position != -1) {
-            Product product = products.get(position);
-            product.togglePurchased();
-            notifyItemChanged(position);
-        }
-    }
-
-    private int getItemPosition(int productId) {
-        for (int i = 0; i < products.size(); i++) {
-            if (products.get(i).getId() == productId) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    public List<Product> getProducts() {
-        return products;
-    }
-
-    public int getPurchasedCount() {
-        int count = 0;
-        for (Product product : products) {
-            if (product.isPurchased()) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    static class ViewHolder extends RecyclerView.ViewHolder {
-        private CheckBox checkBoxPurchased;
-        private TextView textViewProductName;
-        private TextView textViewQuantity;
-        private TextView textViewPrice;
-        private ImageButton buttonDelete;
-        private View categoryIndicator;
+    class ViewHolder extends RecyclerView.ViewHolder {
+        private final CheckBox checkBoxPurchased;
+        private final TextView textViewProductName;
+        private final TextView textViewQuantity;
+        private final TextView textViewPrice;
+        private final ImageButton buttonDelete;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -130,70 +69,56 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
             textViewQuantity = itemView.findViewById(R.id.textViewQuantity);
             textViewPrice = itemView.findViewById(R.id.textViewPrice);
             buttonDelete = itemView.findViewById(R.id.buttonDelete);
-            categoryIndicator = itemView.findViewById(R.id.categoryIndicator);
         }
 
-        public void bind(Product product, OnProductClickListener listener, boolean showDeleteButton) {
-            // Установка названия товара
+        public void bind(Product product) {
             textViewProductName.setText(product.getName());
 
-            // Установка количества
-            String quantityText = itemView.getContext().getString(
-                    R.string.quantity) + ": " + product.getFormattedQuantity();
-            textViewQuantity.setText(quantityText);
+            // Убрал явное преобразование для количества
+            textViewQuantity.setText(String.valueOf(product.getQuantity()));
 
-            // Установка цены (если есть)
-            if (product.getPrice() > 0) {
-                textViewPrice.setText(product.getFormattedPrice());
-                textViewPrice.setVisibility(View.VISIBLE);
-            } else {
-                textViewPrice.setVisibility(View.GONE);
-            }
-
-            // Настройка чекбокса - только отображение, без обработчиков
             checkBoxPurchased.setChecked(product.isPurchased());
             updateTextAppearance(product.isPurchased());
 
-            // Настройка видимости кнопки удаления
+            buttonDelete.setVisibility(showDeleteButton ? View.VISIBLE : View.GONE);
+
             if (showDeleteButton) {
-                buttonDelete.setVisibility(View.VISIBLE);
-                buttonDelete.setOnClickListener(v -> {
-                    if (listener != null) {
-                        listener.onProductDeleteClick(product);
-                    }
-                });
-            } else {
-                buttonDelete.setVisibility(View.GONE);
+                buttonDelete.setOnClickListener(v -> listener.onProductDeleteClick(product));
             }
 
-            // Обработчики кликов на весь элемент
-            itemView.setOnClickListener(v -> {
-                if (listener != null) {
-                    listener.onProductClick(product);
-                }
-            });
-
+            itemView.setOnClickListener(v -> listener.onProductClick(product));
             itemView.setOnLongClickListener(v -> {
-                if (listener != null) {
-                    listener.onProductLongClick(product);
-                    return true;
-                }
-                return false;
+                listener.onProductLongClick(product);
+                return true;
             });
         }
 
         private void updateTextAppearance(boolean isPurchased) {
+            int nameColor, quantityColor, priceColor;
+
             if (isPurchased) {
-                textViewProductName.setPaintFlags(textViewProductName.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
-                textViewProductName.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.colorTextHint));
-                textViewQuantity.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.colorTextHint));
-                textViewPrice.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.colorTextHint));
+                textViewProductName.setPaintFlags(
+                        textViewProductName.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG
+                );
+                nameColor = R.color.colorTextHint;
+                quantityColor = R.color.colorTextHint;
+                priceColor = R.color.colorTextHint;
             } else {
-                textViewProductName.setPaintFlags(textViewProductName.getPaintFlags() & (~Paint.STRIKE_THRU_TEXT_FLAG));
-                textViewProductName.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.colorTextPrimary));
-                textViewQuantity.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.colorTextSecondary));
-                textViewPrice.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.success));
+                textViewProductName.setPaintFlags(
+                        textViewProductName.getPaintFlags() & (~Paint.STRIKE_THRU_TEXT_FLAG)
+                );
+                nameColor = R.color.colorTextPrimary;
+                quantityColor = R.color.colorTextSecondary;
+                priceColor = R.color.success;
             }
+
+            textViewProductName.setTextColor(getColor(nameColor));
+            textViewQuantity.setTextColor(getColor(quantityColor));
+            textViewPrice.setTextColor(getColor(priceColor));
+        }
+
+        private int getColor(int colorResId) {
+            return ContextCompat.getColor(itemView.getContext(), colorResId);
         }
     }
 }

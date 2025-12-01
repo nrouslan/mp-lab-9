@@ -7,10 +7,6 @@ public class Product {
     private int quantity;
     private boolean isPurchased;
     private String createdAt;
-    private String category;
-    private String notes;
-    private double price;
-    private String unit;
 
     // Конструкторы
     public Product(int id, String name, int quantity, boolean isPurchased) {
@@ -27,20 +23,6 @@ public class Product {
         this.quantity = quantity;
         this.isPurchased = isPurchased;
         this.createdAt = createdAt;
-    }
-
-    // Полный конструктор для JSON парсинга
-    public Product(int id, int listId, String name, int quantity, boolean isPurchased,
-                   String createdAt, String category, double price, String notes) {
-        this.id = id;
-        this.listId = listId;
-        this.name = name;
-        this.quantity = quantity;
-        this.isPurchased = isPurchased;
-        this.createdAt = createdAt;
-        this.category = category;
-        this.price = price;
-        this.notes = notes;
     }
 
     // Геттеры и сеттеры
@@ -61,33 +43,6 @@ public class Product {
 
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
-
-    public String getCategory() { return category; }
-    public void setCategory(String category) { this.category = category; }
-
-    public String getNotes() { return notes; }
-    public void setNotes(String notes) { this.notes = notes; }
-
-    public double getPrice() { return price; }
-    public void setPrice(double price) { this.price = price; }
-
-    public String getUnit() { return unit; }
-    public void setUnit(String unit) { this.unit = unit; }
-
-    // Вспомогательные методы
-    public String getFormattedQuantity() {
-        if (unit != null && !unit.isEmpty()) {
-            return quantity + " " + unit;
-        }
-        return String.valueOf(quantity);
-    }
-
-    public String getFormattedPrice() {
-        if (price > 0) {
-            return String.format("%.2f ₽", price);
-        }
-        return "";
-    }
 
     public void togglePurchased() {
         this.isPurchased = !this.isPurchased;

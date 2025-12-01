@@ -4,27 +4,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Прогресс списка -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp"
-        android:background="@color/colorPrimaryLight">
-
-        <TextView
-            android:id="@+id/textViewProgress"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="0/0 товаров"
-            android:textSize="16sp"
-            android:textColor="@android:color/black" />
-
-        <!-- Дополнительные элементы управления списком можно добавить здесь -->
-
-    </LinearLayout>
-
     <!-- Прогресс бар загрузки -->
     <ProgressBar
         android:id="@+id/progressBar"
@@ -38,7 +17,6 @@
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/textViewProgress"
         android:paddingTop="64dp"
         android:paddingHorizontal="8dp"
         android:paddingBottom="8dp"

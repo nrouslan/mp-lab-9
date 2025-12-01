@@ -36,7 +36,7 @@ public class ListDetailFragment extends Fragment implements ProductAdapter.OnPro
     private RecyclerView recyclerView;
     private FloatingActionButton fabAddProduct;
     private ProgressBar progressBar;
-    private TextView textViewEmpty, textViewProgress;
+    private TextView textViewEmpty;
     private ProductAdapter adapter;
     private List<Product> products;
     private int listId;
@@ -78,7 +78,6 @@ public class ListDetailFragment extends Fragment implements ProductAdapter.OnPro
         fabAddProduct = view.findViewById(R.id.fabAddProduct);
         progressBar = view.findViewById(R.id.progressBar);
         textViewEmpty = view.findViewById(R.id.textViewEmpty);
-        textViewProgress = view.findViewById(R.id.textViewProgress);
     }
 
     private void setupRecyclerView() {
@@ -104,7 +103,6 @@ public class ListDetailFragment extends Fragment implements ProductAdapter.OnPro
                                 JSONObject listJson = listsArray.getJSONObject(i);
                                 if (listJson.getInt("id") == listId) {
                                     currentList = JsonParser.parseShoppingList(listJson);
-                                    updateProgress();
                                     break;
                                 }
                             }
@@ -118,7 +116,6 @@ public class ListDetailFragment extends Fragment implements ProductAdapter.OnPro
             @Override
             public void onError(String error) {
                 currentList = new ShoppingList(listId, "Мой список", "2024-01-20", false);
-                updateProgress();
             }
         });
     }
@@ -140,7 +137,6 @@ public class ListDetailFragment extends Fragment implements ProductAdapter.OnPro
                             products.addAll(productList);
                             adapter.notifyDataSetChanged();
                             updateEmptyState();
-                            updateProgress();
                         } else {
                             Toast.makeText(requireContext(), "Не удалось загрузить товары", Toast.LENGTH_SHORT).show();
                         }
@@ -171,25 +167,6 @@ public class ListDetailFragment extends Fragment implements ProductAdapter.OnPro
         products.addAll(tempProducts);
         adapter.notifyDataSetChanged();
         updateEmptyState();
-        updateProgress();
-    }
-
-    private void updateProgress() {
-        if (!products.isEmpty()) {
-            int total = products.size();
-            int completed = 0;
-
-            for (Product product : products) {
-                if (product.isPurchased()) {
-                    completed++;
-                }
-            }
-
-            String progressText = completed + "/" + total + " товаров";
-            textViewProgress.setText(progressText);
-        } else {
-            textViewProgress.setText("0/0 товаров");
-        }
     }
 
     private void updateEmptyState() {
@@ -238,7 +215,6 @@ public class ListDetailFragment extends Fragment implements ProductAdapter.OnPro
                             products.add(newProduct);
                             adapter.notifyItemInserted(products.size() - 1);
                             updateEmptyState();
-                            updateProgress();
 
                             Toast.makeText(requireContext(), "Товар добавлен", Toast.LENGTH_SHORT).show();
                         } else {
@@ -280,7 +256,6 @@ public class ListDetailFragment extends Fragment implements ProductAdapter.OnPro
                                     int position = products.indexOf(product);
                                     if (position != -1) {
                                         adapter.notifyItemChanged(position);
-                                        updateProgress();
 
                                         // Дополнительный Toast при успешном изменении статуса
                                         String status = newPurchasedStatus ? "куплен" : "не куплен";
@@ -424,7 +399,6 @@ public class ListDetailFragment extends Fragment implements ProductAdapter.OnPro
                                 products.remove(position);
                                 adapter.notifyItemRemoved(position);
                                 updateEmptyState();
-                                updateProgress();
                                 Toast.makeText(requireContext(), "Товар удален", Toast.LENGTH_SHORT).show();
                             }
                         } else {

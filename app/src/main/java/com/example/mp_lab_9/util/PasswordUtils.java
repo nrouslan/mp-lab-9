@@ -23,23 +23,23 @@ public class PasswordUtils {
         }
     }
 
-    public static boolean verifyPassword(String password, String hashedPassword) {
-        return hashPassword(password).equals(hashedPassword);
-    }
-
-    public static boolean isPasswordStrong(String password) {
-        if (password.length() < 6) {
-            return false;
-        }
-
-        boolean hasLetter = false;
-        boolean hasDigit = false;
-
-        for (char c : password.toCharArray()) {
-            if (Character.isLetter(c)) hasLetter = true;
-            if (Character.isDigit(c)) hasDigit = true;
-        }
-
-        return hasLetter && hasDigit;
-    }
+//    public static boolean verifyPassword(String password, String hashedPassword) {
+//        return hashPassword(password).equals(hashedPassword);
+//    }
+//
+//    public static boolean isPasswordStrong(String password) {
+//        if (password.length() < 6) {
+//            return false;
+//        }
+//
+//        boolean hasLetter = false;
+//        boolean hasDigit = false;
+//
+//        for (char c : password.toCharArray()) {
+//            if (Character.isLetter(c)) hasLetter = true;
+//            if (Character.isDigit(c)) hasDigit = true;
+//        }
+//
+//        return hasLetter && hasDigit;
+//    }
 }

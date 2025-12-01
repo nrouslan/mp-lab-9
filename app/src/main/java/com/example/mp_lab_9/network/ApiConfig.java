@@ -16,11 +16,4 @@ public class ApiConfig {
     public static final String ADD_PRODUCT = BASE_URL + "add_product.php";
     public static final String UPDATE_PRODUCT = BASE_URL + "update_product.php";
     public static final String DELETE_PRODUCT = BASE_URL + "delete_product.php";
-
-    // Headers
-    public static final String HEADER_CONTENT_TYPE = "Content-Type";
-    public static final String HEADER_AUTHORIZATION = "Authorization";
-    public static final String CONTENT_TYPE_JSON = "application/json";
-    public static final String CONTENT_TYPE_FORM = "application/x-www-form-urlencoded";
-    public static final String BEARER_PREFIX = "Bearer ";
 }
