@@ -1,8 +1,8 @@
 package com.example.mp_lab_9.activity;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.os.StrictMode;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
@@ -10,6 +10,7 @@ import androidx.fragment.app.Fragment;
 import com.example.mp_lab_9.R;
 import com.example.mp_lab_9.fragment.MyListsFragment;
 import com.example.mp_lab_9.fragment.ProfileFragment;
+import com.example.mp_lab_9.service.ReminderWorker;
 import com.example.mp_lab_9.util.SharedPrefManager;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
@@ -21,8 +22,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         setContentView(R.layout.activity_main);
+
+        // ТЕСТ: Немедленное уведомление (уберите после теста)
+        ReminderWorker.testNotificationImmediately(this);
+
+        // Запускаем периодические уведомления
+        ReminderWorker.scheduleReminder(this);
 
         sharedPrefManager = SharedPrefManager.getInstance(this);
 
