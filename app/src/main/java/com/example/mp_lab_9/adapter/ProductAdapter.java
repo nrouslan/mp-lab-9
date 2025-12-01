@@ -150,19 +150,9 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
                 textViewPrice.setVisibility(View.GONE);
             }
 
-            // Настройка чекбокса
+            // Настройка чекбокса - только отображение, без обработчиков
             checkBoxPurchased.setChecked(product.isPurchased());
             updateTextAppearance(product.isPurchased());
-
-            // Обработчик изменения состояния чекбокса
-            checkBoxPurchased.setOnCheckedChangeListener(null); // Сначала удаляем старый listener
-            checkBoxPurchased.setOnCheckedChangeListener((buttonView, isChecked) -> {
-                product.setPurchased(isChecked);
-                updateTextAppearance(isChecked);
-                if (listener != null) {
-                    listener.onProductClick(product);
-                }
-            });
 
             // Настройка видимости кнопки удаления
             if (showDeleteButton) {
@@ -176,24 +166,19 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
                 buttonDelete.setVisibility(View.GONE);
             }
 
-            // Индикатор категории (если есть)
-            if (categoryIndicator != null && product.getCategory() != null) {
-                categoryIndicator.setBackgroundColor(getCategoryColor(product.getCategory()));
-                categoryIndicator.setVisibility(View.VISIBLE);
-            } else if (categoryIndicator != null) {
-                categoryIndicator.setVisibility(View.GONE);
-            }
-
             // Обработчики кликов на весь элемент
             itemView.setOnClickListener(v -> {
-                checkBoxPurchased.setChecked(!checkBoxPurchased.isChecked());
+                if (listener != null) {
+                    listener.onProductClick(product);
+                }
             });
 
             itemView.setOnLongClickListener(v -> {
                 if (listener != null) {
                     listener.onProductLongClick(product);
+                    return true;
                 }
-                return true;
+                return false;
             });
         }
 
@@ -208,22 +193,6 @@ public class ProductAdapter extends RecyclerView.Adapter<ProductAdapter.ViewHold
                 textViewProductName.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.colorTextPrimary));
                 textViewQuantity.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.colorTextSecondary));
                 textViewPrice.setTextColor(ContextCompat.getColor(itemView.getContext(), R.color.success));
-            }
-        }
-
-        private int getCategoryColor(String category) {
-            // Простая реализация цветов для категорий
-            switch (category.toLowerCase()) {
-                case "овощи":
-                    return ContextCompat.getColor(itemView.getContext(), R.color.success);
-                case "фрукты":
-                    return ContextCompat.getColor(itemView.getContext(), R.color.warning);
-                case "молочные":
-                    return ContextCompat.getColor(itemView.getContext(), R.color.info);
-                case "мясо":
-                    return ContextCompat.getColor(itemView.getContext(), R.color.error);
-                default:
-                    return ContextCompat.getColor(itemView.getContext(), R.color.colorPrimary);
             }
         }
     }

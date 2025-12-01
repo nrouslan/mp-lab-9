@@ -3,6 +3,7 @@ package com.example.mp_lab_9.fragment;
 import com.example.mp_lab_9.R;
 import android.app.AlertDialog;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -259,10 +260,13 @@ public class ListDetailFragment extends Fragment implements ProductAdapter.OnPro
         });
     }
 
+
     @Override
     public void onProductClick(Product product) {
         // Инвертируем статус покупки
         boolean newPurchasedStatus = !product.isPurchased();
+
+        Log.println(Log.INFO, "newPurchasedStatus", String.valueOf(newPurchasedStatus));
 
         apiClient.updateProduct(product.getId(), newPurchasedStatus, null, null,
                 new ApiClient.ApiCallback() {
@@ -277,6 +281,11 @@ public class ListDetailFragment extends Fragment implements ProductAdapter.OnPro
                                     if (position != -1) {
                                         adapter.notifyItemChanged(position);
                                         updateProgress();
+
+                                        // Дополнительный Toast при успешном изменении статуса
+                                        String status = newPurchasedStatus ? "куплен" : "не куплен";
+                                        Toast.makeText(requireContext(), "Товар " + status,
+                                                Toast.LENGTH_SHORT).show();
                                     }
                                 } else {
                                     // Откатываем изменение в случае ошибки

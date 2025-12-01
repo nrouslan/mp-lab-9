@@ -35,7 +35,10 @@
                 android:id="@+id/checkBoxPurchased"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:buttonTint="@color/colorPrimary" />
+                android:buttonTint="@color/colorPrimary"
+                android:clickable="false"
+                android:focusable="false"
+                />
 
             <!-- Информация о товаре -->
             <LinearLayout
